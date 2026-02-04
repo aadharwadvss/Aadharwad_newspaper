@@ -18,9 +18,18 @@ const app = express();
 // Security middleware
 app.use(helmet());
 app.use(cors({
-  origin: process.env.FRONTEND_URL,
+  origin: [
+    "http://localhost:3000",
+
+    // Vercel production
+    "https://aadharwad-newspaper-uslq.vercel.app",
+
+    // Vercel preview (current one)
+    "https://aadharwad-newspaper-uslq-irajgz3eq-aadharwads-projects.vercel.app"
+  ],
   credentials: true
 }));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
