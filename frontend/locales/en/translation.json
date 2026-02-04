@@ -1,0 +1,85 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "close": "Close",
+    "upload": "Upload",
+    "download": "Download"
+  },
+  "header": {
+    "title": "Aadharwad",
+    "subtitle": "Digital Newspaper",
+    "home": "Home",
+    "archive": "Archive",
+    "adminLogin": "Admin Login",
+    "latestNews": "Latest News"
+  },
+  "home": {
+    "latestNews": "Latest News",
+    "todayNewspaper": "Today's Newspaper",
+    "viewMore": "View More",
+    "readMore": "Read More",
+    "noNews": "No news available at the moment",
+    "noNewspaper": "Today's newspaper is not yet available",
+    "features": {
+      "title": "Our Features",
+      "daily": "Daily Updates",
+      "dailyDesc": "Fresh newspaper every day",
+      "archive": "Complete Archive",
+      "archiveDesc": "All previous editions available",
+      "mobile": "Mobile Friendly",
+      "mobileDesc": "Read anywhere, anytime"
+    }
+  },
+  "archive": {
+    "title": "Newspaper Archive",
+    "subtitle": "Browse all previous editions by date",
+    "selectDate": "Select Date",
+    "selectedDate": "Selected Date",
+    "recent": "Recent Editions",
+    "notAvailable": "Newspaper not available for this date"
+  },
+  "login": {
+    "title": "Login",
+    "adminPortal": "Admin Portal",
+    "email": "Email",
+    "password": "Password",
+    "loginButton": "Login",
+    "loggingIn": "Logging in...",
+    "backToHome": "Back to Home",
+    "warning": "Access for authorized administrators only"
+  },
+  "admin": {
+    "dashboard": "Dashboard",
+    "upload": "Upload",
+    "history": "History",
+    "manageNews": "Manage News",
+    "logout": "Logout",
+    "viewSite": "View Site",
+    "stats": {
+      "total": "Total Newspapers",
+      "thisMonth": "This Month",
+      "todayStatus": "Today's Status",
+      "uploaded": "Uploaded",
+      "pending": "Pending"
+    },
+    "news": {
+      "addNew": "Add New Article",
+      "edit": "Edit Article",
+      "titleMr": "Title (Marathi)",
+      "titleEn": "Title (English)",
+      "descMr": "Description (Marathi)",
+      "descEn": "Description (English)",
+      "image": "Image",
+      "preview": "Preview",
+      "publish": "Publish",
+      "allNews": "All News",
+      "noNews": "No news articles"
+    }
+  }
+}
