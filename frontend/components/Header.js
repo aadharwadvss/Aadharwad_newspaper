@@ -44,13 +44,13 @@ export default function Header() {
               <div className="relative w-16 h-16 bg-white rounded-full p-2 shadow-lg">
                 <img
                   src="/logo.jpeg"
-                  alt="आधारवाड लोगो"
+                  alt="आधारवड लोगो"
                   className="w-full h-full object-contain"
                 />
               </div>
               <div>
                 <h1 className="text-2xl md:text-4xl font-black newspaper-headline tracking-wider">
-                  आधारवाड
+                  आधारवड
                 </h1>
                 <p className="text-xs md:text-sm text-newspaper-gold marathi-text">
                   डिजिटल वर्तमानपत्र
@@ -101,7 +101,7 @@ export default function Header() {
             <div className="relative w-16 h-16 bg-white rounded-full p-2 shadow-lg transform group-hover:scale-110 transition-transform">
               <img
                 src="/logo.jpeg"
-                alt="आधारवाड लोगो"
+                alt="आधारवड लोगो"
                 className="w-full h-full object-contain"
                 onError={(e) => {
                   e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Ccircle cx="50" cy="50" r="45" fill="%238B4513"/%3E%3Ctext x="50" y="60" font-size="40" text-anchor="middle" fill="white" font-weight="bold"%3Eआ%3C/text%3E%3C/svg%3E';
@@ -110,7 +110,7 @@ export default function Header() {
             </div>
             <div>
               <h1 className="text-2xl md:text-4xl font-black newspaper-headline tracking-wider">
-                आधारवाड
+                आधारवड
               </h1>
               <p className="text-xs md:text-sm text-newspaper-gold marathi-text">
                 डिजिटल वर्तमानपत्र
