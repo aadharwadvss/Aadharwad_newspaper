@@ -18,9 +18,9 @@ module.exports = {
         }
       },
       fontFamily: {
-        marathi: ['Noto Sans Devanagari', 'sans-serif'],
-        english: ['Playfair Display', 'serif']
-      },
+     marathi: ['ShreeLipi 103', 'sans-serif'],
+     english: ['ShreeLipi 103', 'serif'],
+     },
       backgroundImage: {
         'paper-texture': "url('data:image/svg+xml,%3Csvg width=\"100\" height=\"100\" xmlns=\"http://www.w3.org/2000/svg\"%3E%3Cfilter id=\"noise\"%3E%3CfeTurbulence type=\"fractalNoise\" baseFrequency=\"0.9\" numOctaves=\"4\" /%3E%3CfeColorMatrix type=\"saturate\" values=\"0\"/%3E%3C/filter%3E%3Crect width=\"100\" height=\"100\" filter=\"url(%23noise)\" opacity=\"0.05\"/%3E%3C/svg%3E')"
       }
