@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://aadharwad-newspaper-5cbp.vercel.app//sitemap.xml
