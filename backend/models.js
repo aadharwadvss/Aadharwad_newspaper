@@ -17,6 +17,10 @@ const adminSchema = new mongoose.Schema({
     type: String,
     default: 'Admin'
   },
+  tokenVersion: {
+    type: Number,
+    default: 0
+  },
   createdAt: {
     type: Date,
     default: Date.now
@@ -28,7 +32,6 @@ const newspaperSchema = new mongoose.Schema({
   date: {
     type: String, // Format: YYYY-MM-DD
     required: true,
-    unique: true,
     index: true
   },
   driveFileId: {
@@ -38,6 +41,9 @@ const newspaperSchema = new mongoose.Schema({
   fileName: {
     type: String,
     required: true
+  },
+  originalFileName: {
+    type: String
   },
   fileType: {
     type: String,
@@ -121,5 +127,10 @@ recentNewsSchema.pre('save', function(next) {
 const Admin = mongoose.model('Admin', adminSchema);
 const Newspaper = mongoose.model('Newspaper', newspaperSchema);
 const RecentNews = mongoose.model('RecentNews', recentNewsSchema);
+
+// Drop the old unique index on 'date' if it exists (allows multiple papers per day)
+Newspaper.collection.dropIndex('date_1').catch(() => {
+  // Index may not exist, ignore error
+});
 
 module.exports = { Admin, Newspaper, RecentNews };

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import AdminLayout from '../../components/admin/AdminLayout';
 import { adminAPI } from '../../utils/api';
@@ -7,11 +7,18 @@ import toast from 'react-hot-toast';
 export default function AdminUpload() {
   const [formData, setFormData] = useState({
     file: null,
-    date: new Date().toISOString().split('T')[0]
+    date: ''
   });
   const [preview, setPreview] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+
+  useEffect(() => {
+    setFormData(prev => ({
+      ...prev,
+      date: new Date().toISOString().split('T')[0]
+    }));
+  }, []);
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];

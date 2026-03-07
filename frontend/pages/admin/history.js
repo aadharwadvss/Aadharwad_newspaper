@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Head from 'next/head';
 import AdminLayout from '../../components/admin/AdminLayout';
 import { adminAPI, formatDate } from '../../utils/api';
@@ -10,10 +10,24 @@ export default function AdminHistory() {
   const [deleteId, setDeleteId] = useState(null);
   const [pagination, setPagination] = useState({
     page: 1,
-    limit: 20,
+    limit: 50,
     total: 0,
     pages: 0
   });
+
+  // Group papers by date for the grouped view
+  const groupedByDate = useMemo(() => {
+    const groups = {};
+    newspapers.forEach(paper => {
+      if (!groups[paper.date]) groups[paper.date] = [];
+      groups[paper.date].push(paper);
+    });
+    return groups;
+  }, [newspapers]);
+
+  const sortedDates = useMemo(() => {
+    return Object.keys(groupedByDate).sort((a, b) => b.localeCompare(a));
+  }, [groupedByDate]);
 
   useEffect(() => {
     fetchHistory();
@@ -43,7 +57,7 @@ export default function AdminHistory() {
       const response = await adminAPI.deleteNewspaper(id);
       if (response.success) {
         toast.success(response.message);
-        fetchHistory(); // Refresh list
+        fetchHistory();
       }
     } catch (err) {
       toast.error(err.response?.data?.message || 'हटवता आले नाही');
@@ -100,142 +114,94 @@ export default function AdminHistory() {
           </div>
         ) : (
           <>
-            {/* Desktop Table */}
-            <div className="newspaper-card overflow-hidden hidden md:block">
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-newspaper-beige">
-                    <tr>
-                      <th className="text-left py-4 px-6 marathi-text font-bold">#</th>
-                      <th className="text-left py-4 px-6 marathi-text font-bold">तारीख</th>
-                      <th className="text-left py-4 px-6 marathi-text font-bold">फाईल नाव</th>
-                      <th className="text-left py-4 px-6 marathi-text font-bold">प्रकार</th>
-                      <th className="text-left py-4 px-6 marathi-text font-bold">साइझ</th>
-                      <th className="text-left py-4 px-6 marathi-text font-bold">अपलोड केले</th>
-                      <th className="text-center py-4 px-6 marathi-text font-bold">क्रिया</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {newspapers.map((newspaper, index) => (
-                      <tr 
-                        key={newspaper._id} 
-                        className="border-b border-newspaper-beige hover:bg-newspaper-cream transition-colors"
-                      >
-                        <td className="py-4 px-6 font-semibold">
-                          {(pagination.page - 1) * pagination.limit + index + 1}
-                        </td>
-                        <td className="py-4 px-6 marathi-text font-semibold">
-                          {new Date(newspaper.date).toLocaleDateString('mr-IN', {
-                            day: 'numeric',
-                            month: 'short',
-                            year: 'numeric'
-                          })}
-                        </td>
-                        <td className="py-4 px-6 text-sm">
-                          {newspaper.fileName}
-                        </td>
-                        <td className="py-4 px-6">
-                          <span className="bg-newspaper-red text-white px-3 py-1 rounded-full text-xs font-semibold">
-                            {newspaper.fileType.toUpperCase()}
-                          </span>
-                        </td>
-                        <td className="py-4 px-6 text-sm">
-                          {(newspaper.fileSize / 1024 / 1024).toFixed(2)} MB
-                        </td>
-                        <td className="py-4 px-6 text-sm text-gray-600">
-                          {new Date(newspaper.uploadedAt).toLocaleDateString('mr-IN')}
-                        </td>
-                        <td className="py-4 px-6">
-                          <div className="flex items-center justify-center space-x-3">
-                            <a
-                              href={newspaper.previewUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-newspaper-brown hover:text-newspaper-red transition-colors"
-                              title="पहा"
-                            >
-                              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                              </svg>
-                            </a>
-                            <button
-                              onClick={() => handleDelete(newspaper._id)}
-                              disabled={deleteId === newspaper._id}
-                              className="text-red-600 hover:text-red-800 transition-colors disabled:opacity-50"
-                              title="हटवा"
-                            >
-                              {deleteId === newspaper._id ? (
-                                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-red-600"></div>
-                              ) : (
-                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                </svg>
-                              )}
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            {/* Mobile Cards */}
-            <div className="md:hidden space-y-4">
-              {newspapers.map((newspaper, index) => (
-                <div key={newspaper._id} className="newspaper-card p-4">
-                  <div className="flex justify-between items-start mb-3">
-                    <div>
-                      <p className="font-bold marathi-text text-lg">
-                        {new Date(newspaper.date).toLocaleDateString('mr-IN', {
-                          day: 'numeric',
-                          month: 'short',
-                          year: 'numeric'
-                        })}
-                      </p>
-                      <p className="text-sm text-gray-600">
-                        {newspaper.fileName}
-                      </p>
-                    </div>
-                    <span className="bg-newspaper-red text-white px-2 py-1 rounded text-xs font-semibold">
-                      {newspaper.fileType.toUpperCase()}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <p className="text-sm text-gray-600">
-                      {(newspaper.fileSize / 1024 / 1024).toFixed(2)} MB
-                    </p>
-                    <div className="flex space-x-3">
-                      <a
-                        href={newspaper.previewUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-newspaper-brown"
-                      >
+            {/* Grouped by Date View */}
+            <div className="space-y-6">
+              {sortedDates.map(date => {
+                const papersForDate = groupedByDate[date];
+                return (
+                  <div key={date} className="newspaper-card overflow-hidden">
+                    {/* Date Header */}
+                    <div className="bg-gradient-to-r from-newspaper-dark to-newspaper-brown text-white px-6 py-4 flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
                         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                         </svg>
-                      </a>
-                      <button
-                        onClick={() => handleDelete(newspaper._id)}
-                        disabled={deleteId === newspaper._id}
-                        className="text-red-600"
-                      >
-                        {deleteId === newspaper._id ? (
-                          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-red-600"></div>
-                        ) : (
-                          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </svg>
-                        )}
-                      </button>
+                        <h3 className="text-lg font-bold marathi-text">
+                          {formatDate(date)}
+                        </h3>
+                      </div>
+                      <span className="bg-newspaper-gold text-newspaper-dark px-3 py-1 rounded-full text-sm font-bold">
+                        {papersForDate.length} {papersForDate.length === 1 ? 'अंक' : 'अंक'}
+                      </span>
+                    </div>
+
+                    {/* Papers List */}
+                    <div className="divide-y divide-newspaper-beige">
+                      {papersForDate.map((paper, idx) => (
+                        <div key={paper._id} className="px-6 py-4 hover:bg-newspaper-cream transition-colors">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-4">
+                              {/* Index Badge */}
+                              <span className="w-8 h-8 bg-newspaper-red text-white rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0">
+                                {idx + 1}
+                              </span>
+                              <div>
+                                <p className="font-semibold text-newspaper-dark">
+                                  {paper.originalFileName || paper.fileName}
+                                </p>
+                                <div className="flex items-center space-x-3 mt-1 text-sm text-gray-600">
+                                  <span className="bg-newspaper-beige px-2 py-0.5 rounded text-xs font-semibold">
+                                    {paper.fileType.toUpperCase()}
+                                  </span>
+                                  <span>{(paper.fileSize / 1024 / 1024).toFixed(2)} MB</span>
+                                  <span>
+                                    अपलोड: {new Date(paper.uploadedAt).toLocaleTimeString('mr-IN', {
+                                      hour: '2-digit',
+                                      minute: '2-digit'
+                                    })}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                            <div className="flex items-center space-x-3 flex-shrink-0">
+                              <a
+                                href={paper.previewUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center space-x-1 text-sm font-semibold text-newspaper-brown hover:text-newspaper-red transition-colors px-3 py-1 rounded-lg hover:bg-newspaper-beige"
+                                title="पहा"
+                              >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                </svg>
+                                <span className="hidden sm:inline">पहा</span>
+                              </a>
+                              <button
+                                onClick={() => handleDelete(paper._id)}
+                                disabled={deleteId === paper._id}
+                                className="flex items-center space-x-1 text-sm font-semibold text-red-600 hover:text-red-800 transition-colors disabled:opacity-50 px-3 py-1 rounded-lg hover:bg-red-50"
+                                title="हटवा"
+                              >
+                                {deleteId === paper._id ? (
+                                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-red-600"></div>
+                                ) : (
+                                  <>
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
+                                    <span className="hidden sm:inline">हटवा</span>
+                                  </>
+                                )}
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             {/* Pagination */}
@@ -263,7 +229,7 @@ export default function AdminHistory() {
 
             {/* Stats */}
             <div className="mt-6 text-center marathi-text text-gray-600">
-              एकूण {pagination.total} वर्तमानपत्रे
+              एकूण {pagination.total} वर्तमानपत्रे • {sortedDates.length} तारखा
             </div>
           </>
         )}

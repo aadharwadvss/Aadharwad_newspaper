@@ -49,7 +49,7 @@ export const publicAPI = {
     return response.data;
   },
 
-  // Get newspaper by date
+  // Get newspaper by date (returns array of papers)
   getByDate: async (date) => {
     const response = await api.get(`/newspaper/date/${date}`);
     return response.data;
@@ -136,7 +136,8 @@ export const adminAPI = {
 // ==================== HELPER FUNCTIONS ====================
 
 export const formatDate = (dateString) => {
-  const date = new Date(dateString);
+  // Parse YYYY-MM-DD as local date (not UTC) to avoid off-by-one timezone bug
+  const date = new Date(dateString + 'T00:00:00');
   return date.toLocaleDateString('mr-IN', {
     year: 'numeric',
     month: 'long',

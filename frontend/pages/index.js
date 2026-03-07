@@ -8,19 +8,45 @@ import toast from 'react-hot-toast';
 
 export default function Home() {
   const { t } = useTranslation();
-  const [newspaper, setNewspaper] = useState(null);
+  const [papers, setPapers] = useState([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  const newspaper = papers[currentIndex] || null;
+
   useEffect(() => {
-    fetchLatestNewspaper();
+    fetchTodaysPapers();
   }, []);
 
-  const fetchLatestNewspaper = async () => {
+  const fetchTodaysPapers = async () => {
     try {
       setLoading(true);
-      const response = await publicAPI.getLatest();
-      setNewspaper(response.data);
+      // Try to get today's papers first
+      try {
+        const response = await publicAPI.getToday();
+        const data = Array.isArray(response.data) ? response.data : [response.data];
+        setPapers(data);
+        setCurrentIndex(0);
+        setError(null);
+        return;
+      } catch (todayErr) {
+        // No papers today, fall back to latest
+      }
+
+      // Fallback: get the latest paper's date, then fetch all papers for that date
+      const latestResponse = await publicAPI.getLatest();
+      const latestPaper = latestResponse.data;
+      
+      try {
+        const dateResponse = await publicAPI.getByDate(latestPaper.date);
+        const data = Array.isArray(dateResponse.data) ? dateResponse.data : [dateResponse.data];
+        setPapers(data);
+      } catch (dateErr) {
+        // Single paper fallback
+        setPapers([latestPaper]);
+      }
+      setCurrentIndex(0);
       setError(null);
     } catch (err) {
       setError(err.response?.data?.message || t('home.noNewspaper'));
@@ -30,9 +56,17 @@ export default function Home() {
     }
   };
 
+  const goToPrev = () => {
+    if (currentIndex > 0) setCurrentIndex(currentIndex - 1);
+  };
+
+  const goToNext = () => {
+    if (currentIndex < papers.length - 1) setCurrentIndex(currentIndex + 1);
+  };
+
   const getPublishedDate = () => {
     if (!newspaper) return '';
-    const date = new Date(newspaper.date);
+    const date = new Date(newspaper.date + 'T00:00:00');
     return date.toLocaleDateString('mr-IN', {
       year: 'numeric',
       month: 'long',
@@ -43,7 +77,8 @@ export default function Home() {
 
   const isToday = () => {
     if (!newspaper) return false;
-    const today = new Date().toISOString().split('T')[0];
+    const now = new Date();
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
     return newspaper.date === today;
   };
 
@@ -98,7 +133,7 @@ export default function Home() {
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <button 
-                  onClick={fetchLatestNewspaper}
+                  onClick={fetchTodaysPapers}
                   className="btn-primary"
                 >
                   पुन्हा प्रयत्न करा
@@ -112,6 +147,54 @@ export default function Home() {
 
           {newspaper && !loading && (
             <div className="max-w-6xl mx-auto fade-in">
+              {/* Paper Navigation (only if multiple papers) */}
+              {papers.length > 1 && (
+                <div className="newspaper-card p-4 mb-6">
+                  <div className="flex items-center justify-between">
+                    <button
+                      onClick={goToPrev}
+                      disabled={currentIndex === 0}
+                      className="flex items-center space-x-2 px-4 py-2 rounded-lg font-semibold marathi-text transition-all disabled:opacity-30 disabled:cursor-not-allowed bg-newspaper-beige hover:bg-newspaper-gold text-newspaper-dark"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                      </svg>
+                      <span>← मागील अंक</span>
+                    </button>
+
+                    <div className="flex items-center space-x-2">
+                      {papers.map((_, idx) => (
+                        <button
+                          key={idx}
+                          onClick={() => setCurrentIndex(idx)}
+                          className={`w-9 h-9 rounded-full font-bold text-sm transition-all ${
+                            idx === currentIndex
+                              ? 'bg-newspaper-red text-white shadow-lg scale-110'
+                              : 'bg-newspaper-beige text-newspaper-dark hover:bg-newspaper-gold'
+                          }`}
+                        >
+                          {idx + 1}
+                        </button>
+                      ))}
+                    </div>
+
+                    <button
+                      onClick={goToNext}
+                      disabled={currentIndex === papers.length - 1}
+                      className="flex items-center space-x-2 px-4 py-2 rounded-lg font-semibold marathi-text transition-all disabled:opacity-30 disabled:cursor-not-allowed bg-newspaper-beige hover:bg-newspaper-gold text-newspaper-dark"
+                    >
+                      <span>पुढील अंक →</span>
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </button>
+                  </div>
+                  <p className="text-center text-sm marathi-text text-gray-600 mt-2">
+                    अंक {currentIndex + 1} / {papers.length} — {newspaper.originalFileName || newspaper.fileName}
+                  </p>
+                </div>
+              )}
+
               {/* Newspaper Info Card */}
               <div className="newspaper-card p-6 mb-8">
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -120,12 +203,20 @@ export default function Home() {
                       <h3 className="text-2xl font-bold marathi-text text-newspaper-dark">
                         {formatDate(newspaper.date)}
                       </h3>
+                      {papers.length > 1 && (
+                        <span className="bg-newspaper-red text-white px-3 py-1 rounded-full text-xs font-bold">
+                          अंक {currentIndex + 1}
+                        </span>
+                      )}
                       {!isToday() && (
                         <span className="bg-newspaper-gold text-newspaper-dark px-3 py-1 rounded-full text-xs font-bold">
                           ताजे अंक
                         </span>
                       )}
                     </div>
+                    {newspaper.originalFileName && (
+                      <p className="text-sm text-gray-600 mb-2">{newspaper.originalFileName}</p>
+                    )}
                     <div className="flex flex-wrap gap-3 text-sm">
                       <span className="bg-newspaper-beige px-3 py-1 rounded-full marathi-text">
                         {newspaper.fileType.toUpperCase()}
@@ -153,7 +244,31 @@ export default function Home() {
               <PDFViewer 
                 url={newspaper.previewUrl} 
                 fileName={newspaper.fileName}
+                directDownloadUrl={newspaper.directDownloadUrl}
               />
+
+              {/* Bottom Navigation (only if multiple papers) */}
+              {papers.length > 1 && (
+                <div className="flex items-center justify-center space-x-4 mt-6">
+                  <button
+                    onClick={goToPrev}
+                    disabled={currentIndex === 0}
+                    className="btn-outline disabled:opacity-30 disabled:cursor-not-allowed"
+                  >
+                    ← मागील अंक
+                  </button>
+                  <span className="marathi-text font-semibold text-newspaper-dark">
+                    {currentIndex + 1} / {papers.length}
+                  </span>
+                  <button
+                    onClick={goToNext}
+                    disabled={currentIndex === papers.length - 1}
+                    className="btn-outline disabled:opacity-30 disabled:cursor-not-allowed"
+                  >
+                    पुढील अंक →
+                  </button>
+                </div>
+              )}
 
               {/* Quick Links */}
               <div className="mt-8 text-center">

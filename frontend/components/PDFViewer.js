@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-export default function PDFViewer({ url, fileName }) {
+export default function PDFViewer({ url, fileName, directDownloadUrl }) {
   const [loading, setLoading] = useState(true);
 
   const handleLoad = () => {
@@ -28,7 +28,7 @@ export default function PDFViewer({ url, fileName }) {
       
       {/* Download button */}
       <a
-        href={url.replace('/preview', '/view')}
+        href={directDownloadUrl || url.replace('/preview', '/view')}
         target="_blank"
         rel="noopener noreferrer"
         className="absolute bottom-4 right-4 bg-newspaper-red text-white px-4 py-2 rounded-lg shadow-lg hover:bg-opacity-90 transition-all marathi-text text-sm font-semibold flex items-center space-x-2"

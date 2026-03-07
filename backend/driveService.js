@@ -1,19 +1,21 @@
 const { google } = require("googleapis");
 const stream = require("stream");
+const path = require("path");
 
-const oauth2Client = new google.auth.OAuth2(
+// Use a Service Account JSON file for authentication
+const auth = new google.auth.OAuth2(
   process.env.GOOGLE_CLIENT_ID,
   process.env.GOOGLE_CLIENT_SECRET,
   "http://localhost:5000/auth/google/callback"
 );
 
-oauth2Client.setCredentials({
+auth.setCredentials({
   refresh_token: process.env.GOOGLE_REFRESH_TOKEN,
 });
 
 const drive = google.drive({
   version: "v3",
-  auth: oauth2Client,
+  auth: auth,
 });
 
 class DriveService {
@@ -22,16 +24,19 @@ class DriveService {
       const bufferStream = new stream.PassThrough();
       bufferStream.end(buffer);
 
+      const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID ? process.env.GOOGLE_DRIVE_FOLDER_ID.trim() : "";
+
       const res = await drive.files.create({
         requestBody: {
           name,
-          parents: [process.env.GOOGLE_DRIVE_FOLDER_ID],
+          parents: folderId ? [folderId] : undefined,
         },
         media: {
           mimeType,
           body: bufferStream,
         },
         fields: "id, name, size, webViewLink",
+        supportsAllDrives: true
       });
 
       // make public
@@ -41,6 +46,7 @@ class DriveService {
           role: "reader",
           type: "anyone",
         },
+        supportsAllDrives: true
       });
 
       return res.data;

@@ -15,18 +15,30 @@ const authMiddleware = require('./authMiddleware');
 
 const app = express();
 
+// Trust reverse proxy (e.g. Vercel, Heroku) for accurate IP assignment in rate limiter
+app.set('trust proxy', 1);
+
 // Security middleware
 app.use(helmet());
+
+// Dynamic CORS — reads FRONTEND_URL from env + allows localhost for dev + Vercel previews
+const allowedOrigins = [
+  "http://localhost:3000",
+];
+if (process.env.FRONTEND_URL) {
+  allowedOrigins.push(process.env.FRONTEND_URL);
+}
+
 app.use(cors({
-  origin: [
-    "http://localhost:3000",
-
-    // Vercel production
-    "https://aadharwad-newspaper-uslq.vercel.app",
-
-    // Vercel preview (current one)
-    "https://aadharwad-newspaper-uslq-irajgz3eq-aadharwads-projects.vercel.app"
-  ],
+  origin: function (origin, callback) {
+    // Allow requests with no origin (curl, mobile apps, server-to-server)
+    if (!origin) return callback(null, true);
+    // Allow exact matches
+    if (allowedOrigins.includes(origin)) return callback(null, true);
+    // Allow any Vercel preview URL for this project
+    if (origin.match(/^https:\/\/.*\.vercel\.app$/)) return callback(null, true);
+    callback(new Error('Not allowed by CORS'));
+  },
   credentials: true
 }));
 
@@ -92,20 +104,20 @@ app.get('/api/health', (req, res) => {
   res.json({ success: true, message: 'Server is running', timestamp: new Date() });
 });
 
-// Get today's newspaper
+// Get today's newspapers (IST timezone)
 app.get('/api/newspaper/today', async (req, res) => {
   try {
-    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-    const newspaper = await Newspaper.findOne({ date: today });
+    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' }); // YYYY-MM-DD in IST
+    const newspapers = await Newspaper.find({ date: today }).sort({ uploadedAt: -1 });
     
-    if (!newspaper) {
+    if (!newspapers.length) {
       return res.status(404).json({ 
         success: false, 
         message: 'आजचे वर्तमानपत्र अजून उपलब्ध नाही.' 
       });
     }
 
-    res.json({ success: true, data: newspaper });
+    res.json({ success: true, data: newspapers });
   } catch (error) {
     console.error('Get today error:', error);
     res.status(500).json({ success: false, message: 'सर्व्हर त्रुटी' });
@@ -131,7 +143,7 @@ app.get('/api/newspaper/latest', async (req, res) => {
   }
 });
 
-// Get newspaper by date
+// Get newspapers by date (returns array)
 app.get('/api/newspaper/date/:date', async (req, res) => {
   try {
     const { date } = req.params;
@@ -144,16 +156,16 @@ app.get('/api/newspaper/date/:date', async (req, res) => {
       });
     }
 
-    const newspaper = await Newspaper.findOne({ date });
+    const newspapers = await Newspaper.find({ date }).sort({ uploadedAt: -1 });
     
-    if (!newspaper) {
+    if (!newspapers.length) {
       return res.status(404).json({ 
         success: false, 
         message: 'या तारखेसाठी वर्तमानपत्र उपलब्ध नाही.' 
       });
     }
 
-    res.json({ success: true, data: newspaper });
+    res.json({ success: true, data: newspapers });
   } catch (error) {
     console.error('Get by date error:', error);
     res.status(500).json({ success: false, message: 'सर्व्हर त्रुटी' });
@@ -246,7 +258,7 @@ app.post('/api/admin/login', [
     }
 
     const token = jwt.sign(
-      { adminId: admin._id, email: admin.email },
+      { adminId: admin._id, email: admin.email, tokenVersion: admin.tokenVersion || 0 },
       process.env.JWT_SECRET,
       { expiresIn: '7d' }
     );
@@ -282,7 +294,7 @@ app.get('/api/admin/verify', authMiddleware, async (req, res) => {
 
 // ==================== ADMIN PROTECTED ROUTES ====================
 
-// Upload newspaper
+// Upload newspaper (always appends, never overwrites)
 app.post('/api/admin/newspaper/upload', authMiddleware, upload.single('file'), async (req, res) => {
   try {
     if (!req.file) {
@@ -301,53 +313,30 @@ app.post('/api/admin/newspaper/upload', authMiddleware, upload.single('file'), a
       });
     }
 
-    // Get file extension
+    // Get file extension and create a unique filename
     const fileExt = req.file.mimetype.split('/')[1];
-    const fileName = `${date}.${fileExt}`;
+    const timestamp = Date.now();
+    const fileName = `${date}_${timestamp}.${fileExt}`;
 
-    // Check if newspaper already exists for this date
-    const existingNewspaper = await Newspaper.findOne({ date });
-    
     // Upload to Google Drive
-
     const driveFile = await driveService.uploadFile(
       req.file.buffer,
       fileName,
       req.file.mimetype
     );
 
-    const newspaperData = {
+    // Always create a new record (multiple papers per day)
+    const newspaper = await Newspaper.create({
       date,
       driveFileId: driveFile.id,
       fileName: driveFile.name,
+      originalFileName: req.file.originalname,
       fileType: fileExt,
       previewUrl: driveService.getPreviewUrl(driveFile.id),
       directDownloadUrl: driveService.getDownloadUrl(driveFile.id),
       fileSize: parseInt(driveFile.size),
       uploadedBy: req.adminId
-    };
-
-    if (existingNewspaper) {
-      // Delete old file from Drive
-      try {
-        await driveService.deleteFile(existingNewspaper.driveFileId);
-      } catch (error) {
-        console.error('Failed to delete old file:', error);
-      }
-
-      // Update existing record
-      Object.assign(existingNewspaper, newspaperData);
-      await existingNewspaper.save();
-      
-      return res.json({ 
-        success: true, 
-        message: 'वर्तमानपत्र यशस्वीरित्या अपडेट केले', 
-        data: existingNewspaper 
-      });
-    }
-
-    // Create new record
-    const newspaper = await Newspaper.create(newspaperData);
+    });
 
     res.json({ 
       success: true, 
@@ -450,6 +439,7 @@ app.post('/api/admin/change-password', authMiddleware, [
     }
 
     admin.password = await bcrypt.hash(newPassword, 10);
+    admin.tokenVersion = (admin.tokenVersion || 0) + 1; // Invalidate current tokens
     await admin.save();
 
     res.json({ 
@@ -639,9 +629,13 @@ app.use((req, res) => {
 // Global error handler
 app.use((err, req, res, next) => {
   console.error('Error:', err);
+  
+  const isProduction = process.env.NODE_ENV === 'production';
+  const errorMessage = isProduction ? 'अंतर्गत सर्व्हर त्रुटी' : (err.message || 'अंतर्गत सर्व्हर त्रुटी');
+
   res.status(500).json({ 
     success: false, 
-    message: err.message || 'अंतर्गत सर्व्हर त्रुटी' 
+    message: errorMessage 
   });
 });
 

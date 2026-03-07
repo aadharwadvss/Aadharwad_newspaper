@@ -13,7 +13,12 @@ export default function App({ Component, pageProps, router }) {
     <>
       <Head>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <meta name="description" content="आधारवाड डिजिटल वर्तमानपत्र - दररोज ताज्या बातम्या" />
+        <meta name="description" content="आधारवाड डिजिटल वर्तमानपत्र - दररोज ताज्या बातम्या आणि ई-पेपर" />
+        <meta name="keywords" content="Aadharwad, Newspaper, Marathi News, E-paper, Maharashtra News, Daily Newspaper" />
+        <meta name="author" content="Aadharwad" />
+        <meta property="og:title" content="आधारवाड डिजिटल वर्तमानपत्र" />
+        <meta property="og:description" content="दररोज ताज्या बातम्या आणि ई-पेपरसाठी तुमचे विश्वासू साथीदार" />
+        <meta property="og:type" content="website" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
 

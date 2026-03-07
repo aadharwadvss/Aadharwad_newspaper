@@ -7,7 +7,7 @@ export default function AdminDashboard() {
   const [stats, setStats] = useState({
     total: 0,
     thisMonth: 0,
-    today: null
+    todayCount: 0
   });
   const [recentNewspapers, setRecentNewspapers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -31,21 +31,20 @@ export default function AdminDashboard() {
       // Calculate stats
       const monthResponse = await publicAPI.getByMonth(currentMonth);
       
-      // Check today's newspaper
+      // Check today's newspapers (count)
+      let todayCount = 0;
       try {
         const todayResponse = await publicAPI.getToday();
-        setStats({
-          total: allNewspapers.length,
-          thisMonth: monthResponse.count,
-          today: todayResponse.data
-        });
+        todayCount = Array.isArray(todayResponse.data) ? todayResponse.data.length : 1;
       } catch (err) {
-        setStats({
-          total: allNewspapers.length,
-          thisMonth: monthResponse.count,
-          today: null
-        });
+        todayCount = 0;
       }
+
+      setStats({
+        total: allResponse.pagination ? allResponse.pagination.total : allNewspapers.length,
+        thisMonth: monthResponse.count,
+        todayCount
+      });
       
       setRecentNewspapers(allNewspapers.slice(0, 5));
     } catch (err) {
@@ -105,16 +104,16 @@ export default function AdminDashboard() {
               </div>
 
               {/* Today's Status */}
-              <div className={`newspaper-card p-6 border-l-4 ${stats.today ? 'border-green-500' : 'border-yellow-500'}`}>
+              <div className={`newspaper-card p-6 border-l-4 ${stats.todayCount > 0 ? 'border-green-500' : 'border-yellow-500'}`}>
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm marathi-text text-gray-600 mb-1">आजचा स्टेटस</p>
                     <p className="text-xl font-bold marathi-text text-newspaper-dark">
-                      {stats.today ? 'अपलोड झाले ✓' : 'प्रलंबित'}
+                      {stats.todayCount > 0 ? `${stats.todayCount} अपलोड ✓` : 'प्रलंबित'}
                     </p>
                   </div>
-                  <div className={`w-16 h-16 ${stats.today ? 'bg-green-500' : 'bg-yellow-500'} bg-opacity-10 rounded-full flex items-center justify-center`}>
-                    {stats.today ? (
+                  <div className={`w-16 h-16 ${stats.todayCount > 0 ? 'bg-green-500' : 'bg-yellow-500'} bg-opacity-10 rounded-full flex items-center justify-center`}>
+                    {stats.todayCount > 0 ? (
                       <svg className="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                       </svg>
@@ -166,7 +165,7 @@ export default function AdminDashboard() {
                     {recentNewspapers.map((newspaper) => (
                       <tr key={newspaper._id} className="border-b border-newspaper-beige hover:bg-newspaper-beige transition-colors">
                         <td className="py-3 px-4 marathi-text">
-                          {new Date(newspaper.date).toLocaleDateString('mr-IN', {
+                          {new Date(newspaper.date + 'T00:00:00').toLocaleDateString('mr-IN', {
                             day: 'numeric',
                             month: 'short',
                             year: 'numeric'
